@@ -53,9 +53,9 @@ st.title(service_provider + ' Google Reviews')
 
 
 @st.cache(hash_funcs={"MyUnhashableClass": lambda _: None}, suppress_st_warning=True)
-def load_html_string():
-    topics_ = int(st.sidebar.text_input("Number of Topics", 10))
-    lda_model__ = LatentDirichletAllocation(n_components=topics_,  # Number of topics
+def load_data():
+    topics = int(st.sidebar.text_input("Number of Topics", 10))
+    lda_model__ = LatentDirichletAllocation(n_components=topics,  # Number of topics
                                             learning_method='online',
                                             random_state=0,
                                             n_jobs=-1  # Use all available CPUs
@@ -68,7 +68,7 @@ def load_html_string():
     return html_string_, lda_output_, lda_model__, data_vectorized_
 
 
-html_string, lda_output, lda_model, data_vectorized = load_html_string()
+html_string, lda_output, lda_model, data_vectorized = load_data()
 
 components.v1.html(html_string, width=1000, height=800, scrolling=True)
 
@@ -165,11 +165,11 @@ if grams:
 
 with st.expander("Reviews that have the Highest polarity or Lowest Polarity:"):
     st.write("Reviews that have the Highest polarity:")
-    st.write(redcliffe_labs[redcliffe_labs.polarity == 1].review_text)
+    st.write(redcliffe_labs[redcliffe_labs.polarity == 1].review_text.head(25))
     st.write("Reviews that have the lowest polarity:")
-    st.write(redcliffe_labs[redcliffe_labs.polarity == -1].review_text)
+    st.write(redcliffe_labs[redcliffe_labs.polarity == -1].review_text.head(25))
     st.write("Reviews that have the lowest ratings:")
-    st.write(redcliffe_labs[redcliffe_labs.review_rating == 1].review_text)
+    st.write(redcliffe_labs[redcliffe_labs.review_rating == 1].review_text.head(25))
     # st.write("Reviews that have the Highest ratings:")
     # st.write(redcliffe_labs[redcliffe_labs.review_rating == 5].review_text.head())
     # st.write("Reviews that have lowest polarity (most negative sentiment) but with a 5-star:")
@@ -192,11 +192,18 @@ with st.expander("See Distribution of review character length"):
 
 if topic_distribution:
     st.title(service_provider + ' Topic Distribution')
-    topic = int(st.text_input(
-        "Number of Words",
-        10
-    ))
-    topic_keywords = show_topics(vectorizer, lda_model, n_words=10)
+    with st.form(key='Words_form'):
+        words = int(st.text_input(
+            "Number of Words",
+            10
+        ))
+        submitted = st.form_submit_button("Submit")
+        if submitted:
+            words = words
+        else:
+            words = 10
+
+    topic_keywords = show_topics(vectorizer, lda_model, n_words=words)
     # Topic - Keywords Dataframe
     df_topic_keywords = pd.DataFrame(topic_keywords)
     df_topic_keywords.columns = ['Word ' + str(i) for i in range(df_topic_keywords.shape[1])]
@@ -226,12 +233,17 @@ if topic_distribution:
     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader('Dominant Topic: Filter')
-    topic_ = st.selectbox(
-        "Select Topic",
-        topics
-    )
-    no = int(''.join(filter(str.isdigit, topic_)))
-    st.write(df_topic_theme[df_document_topic.dominant_topic == no])
+    with st.form(key='Filter_form'):
+        topic_ = st.selectbox(
+            "Select Topic",
+            topics
+        )
+        no = int(''.join(filter(str.isdigit, topic_)))
+        submitted = st.form_submit_button("Submit")
+        if submitted:
+            st.write(df_topic_theme[df_document_topic.dominant_topic == no])
+        else:
+            st.write(df_topic_theme)
 
     # df_topic_theme['dominant_topic_theme'] = df_topic_theme.apply(lambda row: label_theme(row), axis=1)
 
