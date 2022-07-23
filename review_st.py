@@ -26,7 +26,7 @@ topic_distribution = st.sidebar.checkbox('Topic distribution', True)
 
 # nlp = spacy.load("en_core_web_sm")
 from st_utils import *
-
+st.info('This is a purely informational message')
 
 @st.cache(hash_funcs={"MyUnhashableClass": lambda _: None})
 def read_data():
@@ -51,24 +51,24 @@ redcliffe_labs = read_data()
 
 st.title(service_provider + ' Google Reviews')
 
+with st.spinner('Please Wait for a while ... Reading data and fitting model...'):
+    @st.cache(hash_funcs={"MyUnhashableClass": lambda _: None}, suppress_st_warning=True)
+    def load_data():
+        topics = int(st.sidebar.text_input("Number of Topics", 10))
+        lda_model__ = LatentDirichletAllocation(n_components=topics,  # Number of topics
+                                                learning_method='online',
+                                                random_state=0,
+                                                n_jobs=-1  # Use all available CPUs
+                                                )
+        data_vectorized_ = vectorizer.fit_transform(redcliffe_labs['review_lemmatize_clean'])
+        lda_output_ = lda_model__.fit_transform(data_vectorized_)
+        prepared_model_data = pyLDAvis.sklearn.prepare(lda_model__, data_vectorized_, vectorizer, mds='tsne')
+        pyLDAvis.save_html(prepared_model_data, 'lda.html')
+        html_string_ = pyLDAvis.prepared_data_to_html(prepared_model_data)
+        topic_keywords = show_topics(vectorizer, lda_model__, n_words=10)
+        return html_string_, lda_output_, lda_model__, data_vectorized_, topic_keywords
 
-@st.cache(hash_funcs={"MyUnhashableClass": lambda _: None}, suppress_st_warning=True)
-def load_data():
-    topics = int(st.sidebar.text_input("Number of Topics", 10))
-    lda_model__ = LatentDirichletAllocation(n_components=topics,  # Number of topics
-                                            learning_method='online',
-                                            random_state=0,
-                                            n_jobs=-1  # Use all available CPUs
-                                            )
-    data_vectorized_ = vectorizer.fit_transform(redcliffe_labs['review_lemmatize_clean'])
-    lda_output_ = lda_model__.fit_transform(data_vectorized_)
-    prepared_model_data = pyLDAvis.sklearn.prepare(lda_model__, data_vectorized_, vectorizer, mds='tsne')
-    pyLDAvis.save_html(prepared_model_data, 'lda.html')
-    html_string_ = pyLDAvis.prepared_data_to_html(prepared_model_data)
-    return html_string_, lda_output_, lda_model__, data_vectorized_
-
-
-html_string, lda_output, lda_model, data_vectorized = load_data()
+html_string, lda_output, lda_model, data_vectorized, topic_keywords = load_data()
 
 components.v1.html(html_string, width=1000, height=800, scrolling=True)
 
@@ -84,7 +84,9 @@ if my_slider:
         submitted = st.form_submit_button("Submit")
         if submitted:
             st.write('Selected Polarity Values:', values)
-            st.write(redcliffe_labs[redcliffe_labs['polarity'].between(values[0], values[1])])
+            st.write(redcliffe_labs[['polarity', 'review_text', 'review_rating']][redcliffe_labs['polarity'].between(values[0], values[1])])
+        else:
+            st.write(redcliffe_labs[['polarity','review_text', 'review_rating']][redcliffe_labs['polarity'].between(values[0], values[1])])
 
 if v_polarity:
     st.subheader('Polarity Values Plots ')
@@ -203,7 +205,6 @@ if topic_distribution:
         else:
             words = 10
 
-    topic_keywords = show_topics(vectorizer, lda_model, n_words=words)
     # Topic - Keywords Dataframe
     df_topic_keywords = pd.DataFrame(topic_keywords)
     df_topic_keywords.columns = ['Word ' + str(i) for i in range(df_topic_keywords.shape[1])]
