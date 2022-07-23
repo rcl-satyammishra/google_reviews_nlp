@@ -8,7 +8,7 @@ from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from pprint import pprint
 
-nlp = spacy.load("en_core_web_sm")
+# nlp = spacy.load("en_core_web_sm")
 
 vectorizer = CountVectorizer(analyzer='word',
                              min_df=3,  # minimum required occurences of a word
@@ -34,13 +34,13 @@ def clean_text(text):
     text = re.sub(r'\w*\d\w*', '', text)
     return text
 
-
-def lemmatizer(text):
-    sent = []
-    doc = nlp(text)
-    for word in doc:
-        sent.append(word.lemma_)
-    return " ".join(sent)
+#
+# def lemmatizer(text):
+#     sent = []
+#     doc = nlp(text)
+#     for word in doc:
+#         sent.append(word.lemma_)
+#     return " ".join(sent)
 
 
 def get_top_n_words(corpus, n=None):

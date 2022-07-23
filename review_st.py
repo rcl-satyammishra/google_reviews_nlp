@@ -19,7 +19,7 @@ redcliffe_labs = pd.read_excel('RedcliffeLabs2K.xlsx')
 redcliffe_labs = redcliffe_labs.dropna()
 
 redcliffe_labs = pd.DataFrame(redcliffe_labs.review_text.apply(lambda x: clean_text(x)))
-redcliffe_labs["review_text"] = redcliffe_labs.apply(lambda x: lemmatizer(x['review_text']), axis=1)
+# redcliffe_labs["review_text"] = redcliffe_labs.apply(lambda x: lemmatizer(x['review_text']), axis=1)
 st.write(redcliffe_labs.head())
 
 plt.figure(figsize=(10, 6))
