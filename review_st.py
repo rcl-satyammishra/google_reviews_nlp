@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 
-nlp = spacy.load("en_core_web_sm")
+# nlp = spacy.load("en_core_web_sm")
 from st_utils import *
 
 redcliffe_labs = pd.read_excel('RedcliffeLabs2K.xlsx')
