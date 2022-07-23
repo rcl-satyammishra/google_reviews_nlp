@@ -22,7 +22,6 @@ v_polarity = st.sidebar.checkbox('Show Review Polarity/Rating Plots ', True)
 my_slider = st.sidebar.checkbox('Select Reviews with Polarity Values', True)
 wordcloud = st.sidebar.checkbox('Visualize WordCloud', True)
 grams = st.sidebar.checkbox('Visualize Unigrams, Bigrams and Trigrams', True)
-topic_distribution = st.sidebar.checkbox('Topic distribution', True)
 
 # nlp = spacy.load("en_core_web_sm")
 from st_utils import *
@@ -51,33 +50,28 @@ redcliffe_labs = read_data()
 
 st.title(service_provider + ' Google Reviews')
 
-topics = int(st.sidebar.text_input("Number of Topics", 10))
-words = int(st.sidebar.text_input(
-    "Number of Words",
-    10
-))
-
-with st.spinner('Please Wait for a while ... Reading data and fitting model...'):
-    @st.cache(hash_funcs={"MyUnhashableClass": lambda _: None})
-    def load_data():
-        lda_model__ = LatentDirichletAllocation(n_components=topics,  # Number of topics
-                                                learning_method='online',
-                                                random_state=0,
-                                                n_jobs=-1  # Use all available CPUs
-                                                )
-        data_vectorized_ = vectorizer.fit_transform(redcliffe_labs['review_lemmatize_clean'])
-        lda_output_ = lda_model__.fit_transform(data_vectorized_)
-        prepared_model_data = pyLDAvis.sklearn.prepare(lda_model__, data_vectorized_, vectorizer, mds='tsne')
-        pyLDAvis.save_html(prepared_model_data, 'lda.html')
-        html_string_ = pyLDAvis.prepared_data_to_html(prepared_model_data)
-        topic_keywords = show_topics(vectorizer, lda_model__, n_words=words)
-        return html_string_, lda_output_, lda_model__, data_vectorized_, topic_keywords
-
-html_string, lda_output, lda_model, data_vectorized, topic_keywords = load_data()
-st.info('''
-Interpreting extracts information from a fitted LDA topic model a corpus of reviews.
-''')
-components.v1.html(html_string, width=1000, height=800, scrolling=True)
+#
+# with st.spinner('Please Wait for a while ... Reading data and fitting model...'):
+#     @st.cache(hash_funcs={"MyUnhashableClass": lambda _: None})
+#     def load_data():
+#         lda_model__ = LatentDirichletAllocation(n_components=topics,  # Number of topics
+#                                                 learning_method='online',
+#                                                 random_state=0,
+#                                                 n_jobs=-1  # Use all available CPUs
+#                                                 )
+#         data_vectorized_ = vectorizer.fit_transform(redcliffe_labs['review_lemmatize_clean'])
+#         lda_output_ = lda_model__.fit_transform(data_vectorized_)
+#         prepared_model_data = pyLDAvis.sklearn.prepare(lda_model__, data_vectorized_, vectorizer, mds='tsne')
+#         pyLDAvis.save_html(prepared_model_data, 'lda.html')
+#         html_string_ = pyLDAvis.prepared_data_to_html(prepared_model_data)
+#         topic_keywords = show_topics(vectorizer, lda_model__, n_words=words)
+#         return html_string_, lda_output_, lda_model__, data_vectorized_, topic_keywords
+#
+# html_string, lda_output, lda_model, data_vectorized, topic_keywords = load_data()
+# st.info('''
+# Interpreting extracts information from a fitted LDA topic model a corpus of reviews.
+# ''')
+# components.v1.html(html_string, width=1000, height=800, scrolling=True)
 
 with st.expander("See Data"):
     st.write(redcliffe_labs.head())
@@ -203,62 +197,62 @@ with st.expander("See Distribution of review character length"):
     plt.xlabel('Review character length')
     sns.despine()
     st.pyplot(fig)
-
-if topic_distribution:
-    st.title(service_provider + ' Topic Distribution')
-    # with st.form(key='Words_form'):
-    #     words = int(st.text_input(
-    #         "Number of Words",
-    #         10
-    #     ))
-    #     submitted = st.form_submit_button("Submit")
-    #     if submitted:
-    #         words = words
-    #     else:
-    #         words = 10
-
-    # Topic - Keywords Dataframe
-    df_topic_keywords = pd.DataFrame(topic_keywords)
-    df_topic_keywords.columns = ['Word ' + str(i) for i in range(df_topic_keywords.shape[1])]
-    topics = ['Topic ' + str(i) for i in range(df_topic_keywords.shape[0])]
-    df_topic_keywords.index = topics
-    st.subheader('Topic Keywords Table')
-    st.write(df_topic_keywords.T)
-    lda_output = lda_model.transform(data_vectorized)
-    topicnames = df_topic_keywords.T.columns
-    docnames = ["Doc" + str(i) for i in range(len(redcliffe_labs))]
-    df_document_topic = pd.DataFrame(np.round(lda_output, 2), columns=topicnames, index=docnames)
-    dominant_topic = np.argmax(df_document_topic.values, axis=1)
-    df_document_topic['dominant_topic'] = dominant_topic
-    # st.write(df_document_topic)
-    df_document_topic.reset_index(inplace=True)
-    df_sent_topic = pd.merge(redcliffe_labs, df_document_topic, left_index=True, right_index=True)
-    df_sent_topic.drop('index', axis=1, inplace=True)
-    with st.expander("See Topic wise score of each review."):
-        st.write(df_sent_topic)
-    df_topic_theme = df_sent_topic[['review_text', 'dominant_topic']]
-
-    df_topic_distribution = df_topic_theme.groupby(['dominant_topic']).size().sort_values(ascending=False).reset_index(
-        name='count').drop_duplicates()
-    df_topic_distribution['dominant_topic'] = 'Topic ' + df_topic_distribution['dominant_topic'].astype('str')
-    # st.write(df_topic_distribution)
-    fig = px.bar(df_topic_distribution, x='dominant_topic', y='count')
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.subheader('Dominant Topic: Filter')
-    with st.form(key='Filter_form'):
-        topic_ = st.selectbox(
-            "Select Topic",
-            topics
-        )
-        no = int(''.join(filter(str.isdigit, topic_)))
-        submitted = st.form_submit_button("Submit")
-        if submitted:
-            st.write(df_topic_theme[df_document_topic.dominant_topic == no])
-        else:
-            st.write(df_topic_theme)
-
-    # df_topic_theme['dominant_topic_theme'] = df_topic_theme.apply(lambda row: label_theme(row), axis=1)
-
-    # df_topic_distribution = df_topic_theme.groupby(['dominant_topic', 'dominant_topic_theme']).size().sort_values(ascending=False).reset_index(name='count').drop_duplicates(subset='dominant_topic_theme')
+#
+# if topic_distribution:
+#     st.title(service_provider + ' Topic Distribution')
+#     # with st.form(key='Words_form'):
+#     #     words = int(st.text_input(
+#     #         "Number of Words",
+#     #         10
+#     #     ))
+#     #     submitted = st.form_submit_button("Submit")
+#     #     if submitted:
+#     #         words = words
+#     #     else:
+#     #         words = 10
+#
+#     # Topic - Keywords Dataframe
+#     df_topic_keywords = pd.DataFrame(topic_keywords)
+#     df_topic_keywords.columns = ['Word ' + str(i) for i in range(df_topic_keywords.shape[1])]
+#     topics = ['Topic ' + str(i) for i in range(df_topic_keywords.shape[0])]
+#     df_topic_keywords.index = topics
+#     st.subheader('Topic Keywords Table')
+#     st.write(df_topic_keywords.T)
+#     lda_output = lda_model.transform(data_vectorized)
+#     topicnames = df_topic_keywords.T.columns
+#     docnames = ["Doc" + str(i) for i in range(len(redcliffe_labs))]
+#     df_document_topic = pd.DataFrame(np.round(lda_output, 2), columns=topicnames, index=docnames)
+#     dominant_topic = np.argmax(df_document_topic.values, axis=1)
+#     df_document_topic['dominant_topic'] = dominant_topic
+#     # st.write(df_document_topic)
+#     df_document_topic.reset_index(inplace=True)
+#     df_sent_topic = pd.merge(redcliffe_labs, df_document_topic, left_index=True, right_index=True)
+#     df_sent_topic.drop('index', axis=1, inplace=True)
+#     with st.expander("See Topic wise score of each review."):
+#         st.write(df_sent_topic)
+#     df_topic_theme = df_sent_topic[['review_text', 'dominant_topic']]
+#
+#     df_topic_distribution = df_topic_theme.groupby(['dominant_topic']).size().sort_values(ascending=False).reset_index(
+#         name='count').drop_duplicates()
+#     df_topic_distribution['dominant_topic'] = 'Topic ' + df_topic_distribution['dominant_topic'].astype('str')
+#     # st.write(df_topic_distribution)
+#     fig = px.bar(df_topic_distribution, x='dominant_topic', y='count')
+#     st.plotly_chart(fig, use_container_width=True)
+#
+#     st.subheader('Dominant Topic: Filter')
+#     with st.form(key='Filter_form'):
+#         topic_ = st.selectbox(
+#             "Select Topic",
+#             topics
+#         )
+#         no = int(''.join(filter(str.isdigit, topic_)))
+#         submitted = st.form_submit_button("Submit")
+#         if submitted:
+#             st.write(df_topic_theme[df_document_topic.dominant_topic == no])
+#         else:
+#             st.write(df_topic_theme)
+#
+#     # df_topic_theme['dominant_topic_theme'] = df_topic_theme.apply(lambda row: label_theme(row), axis=1)
+#
+#     # df_topic_distribution = df_topic_theme.groupby(['dominant_topic', 'dominant_topic_theme']).size().sort_values(ascending=False).reset_index(name='count').drop_duplicates(subset='dominant_topic_theme')
 st.info('Please reload/reboot if problem occurs due to loading!')
