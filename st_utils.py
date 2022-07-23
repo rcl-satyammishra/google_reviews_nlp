@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from pprint import pprint
+from textblob import TextBlob, Word
 
 # nlp = spacy.load("en_core_web_sm")
 
@@ -19,11 +20,10 @@ vectorizer = CountVectorizer(analyzer='word',
                              # max number of unique words. Build a vocabulary that only consider the top max_features ordered by term frequency across the corpus
                              )
 
-lda_model = LatentDirichletAllocation(n_components=10,  # Number of topics
-                                      learning_method='online',
-                                      random_state=0,
-                                      n_jobs=-1  # Use all available CPUs
-                                      )
+
+
+def detect_polarity(text):
+    return TextBlob(text).sentiment.polarity
 
 
 def clean_text(text):
@@ -33,6 +33,7 @@ def clean_text(text):
     text = re.sub(r'[%s]' % re.escape(string.punctuation), '', text)
     text = re.sub(r'\w*\d\w*', '', text)
     return text
+
 
 #
 # def lemmatizer(text):
@@ -80,15 +81,15 @@ def show_topics(vectorizer_, lda_model_, n_words=20):
 
 
 def label_theme(row):
-    if row['dominant_topic'] == 0 :
+    if row['dominant_topic'] == 0:
         return 'American/Car/Marriage/Story/Life in general'
-    if row['dominant_topic'] == 1 :
+    if row['dominant_topic'] == 1:
         return 'Education/Business/Money'
-    if row['dominant_topic'] == 2 :
+    if row['dominant_topic'] == 2:
         return 'American Medicare/Trump'
     if row['dominant_topic'] == 3:
         return 'State/Social/Rights'
-    if row['dominant_topic']  == 4:
+    if row['dominant_topic'] == 4:
         return 'Build new life'
     if row['dominant_topic'] == 5:
         return 'Highly educated Indian engineers in America'
