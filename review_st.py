@@ -26,7 +26,7 @@ topic_distribution = st.sidebar.checkbox('Topic distribution', True)
 
 # nlp = spacy.load("en_core_web_sm")
 from st_utils import *
-st.info('This is a purely informational message')
+
 
 @st.cache(hash_funcs={"MyUnhashableClass": lambda _: None})
 def read_data():
@@ -51,10 +51,15 @@ redcliffe_labs = read_data()
 
 st.title(service_provider + ' Google Reviews')
 
+topics = int(st.sidebar.text_input("Number of Topics", 10))
+words = int(st.sidebar.text_input(
+    "Number of Words",
+    10
+))
+
 with st.spinner('Please Wait for a while ... Reading data and fitting model...'):
-    @st.cache(hash_funcs={"MyUnhashableClass": lambda _: None}, suppress_st_warning=True)
+    @st.cache(hash_funcs={"MyUnhashableClass": lambda _: None})
     def load_data():
-        topics = int(st.sidebar.text_input("Number of Topics", 10))
         lda_model__ = LatentDirichletAllocation(n_components=topics,  # Number of topics
                                                 learning_method='online',
                                                 random_state=0,
@@ -65,11 +70,13 @@ with st.spinner('Please Wait for a while ... Reading data and fitting model...')
         prepared_model_data = pyLDAvis.sklearn.prepare(lda_model__, data_vectorized_, vectorizer, mds='tsne')
         pyLDAvis.save_html(prepared_model_data, 'lda.html')
         html_string_ = pyLDAvis.prepared_data_to_html(prepared_model_data)
-        topic_keywords = show_topics(vectorizer, lda_model__, n_words=10)
+        topic_keywords = show_topics(vectorizer, lda_model__, n_words=words)
         return html_string_, lda_output_, lda_model__, data_vectorized_, topic_keywords
 
 html_string, lda_output, lda_model, data_vectorized, topic_keywords = load_data()
-
+st.info('''
+Interpreting extracts information from a fitted LDA topic model a corpus of reviews.
+''')
 components.v1.html(html_string, width=1000, height=800, scrolling=True)
 
 with st.expander("See Data"):
@@ -84,27 +91,32 @@ if my_slider:
         submitted = st.form_submit_button("Submit")
         if submitted:
             st.write('Selected Polarity Values:', values)
-            st.write(redcliffe_labs[['polarity', 'review_text', 'review_rating']][redcliffe_labs['polarity'].between(values[0], values[1])])
+            st.write(redcliffe_labs[['polarity', 'review_text', 'review_rating']][
+                         redcliffe_labs['polarity'].between(values[0], values[1])])
         else:
-            st.write(redcliffe_labs[['polarity','review_text', 'review_rating']][redcliffe_labs['polarity'].between(values[0], values[1])])
+            st.write(redcliffe_labs[['polarity', 'review_text', 'review_rating']][
+                         redcliffe_labs['polarity'].between(-1.0, 0.51)])
 
 if v_polarity:
     st.subheader('Polarity Values Plots ')
     # A histogram of the polarity scores.
     num_bins = 50
-    fig = plt.figure(figsize=(10, 6))
+    fig_pol = plt.figure(figsize=(10, 6))
     n, bins, patches = plt.hist(redcliffe_labs.polarity, num_bins, facecolor='blue', alpha=0.5)
     plt.xlabel('Polarity')
     plt.ylabel('Count')
     # plt.title('Histogram of polarity')
-    st.pyplot(fig)
+    st.pyplot(fig_pol)
 
-    fig = plt.figure(figsize=(10, 6))
+    fig_rat = plt.figure(figsize=(10, 6))
     sns.boxenplot(x='review_rating', y='polarity', data=redcliffe_labs)
-    st.pyplot(fig)
+    st.pyplot(fig_rat)
 
 if wordcloud:
-    st.subheader('WordCloud (cluster, of all reviews: depicted in different sizes.)')
+    st.subheader('WordCloud (cluster, of all reviews:)')
+    st.info(
+        'The more a specific word appears in a source of reviews, the bigger and bolder it appears in the word cloud.')
+
     mpl.rcParams['figure.figsize'] = (12.0, 12.0)
     mpl.rcParams['font.size'] = 12
     mpl.rcParams['savefig.dpi'] = 100
@@ -120,10 +132,10 @@ if wordcloud:
     ).generate(str(redcliffe_labs['review_text']))
 
     print(wordcloud)
-    fig_2 = plt.figure(1)
+    fig_21 = plt.figure(1)
     plt.imshow(wordcloud)
     plt.axis('off')
-    st.pyplot(fig_2)
+    st.pyplot(fig_21)
     # wordcloud = WordCloud(
     #     background_color='white',
     #     stopwords=stopwords,
@@ -150,10 +162,10 @@ if grams:
 
     common_words = get_top_n_bigram(redcliffe_labs['review_lemmatize_clean'], 20)
     bi_gram = pd.DataFrame(common_words, columns=['bigram', 'count'])
-    fig_2 = go.Figure([go.Bar(x=bi_gram['bigram'], y=bi_gram['count'])])
-    fig_2.update_layout(
+    fig = go.Figure([go.Bar(x=bi_gram['bigram'], y=bi_gram['count'])])
+    fig.update_layout(
         title=go.layout.Title(text="Top 20 bigrams in the reviews."))
-    st.plotly_chart(fig_2, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
     common_words = get_top_n_trigram(redcliffe_labs['review_lemmatize_clean'], 20)
     tri_gram = pd.DataFrame(common_words, columns=['trigram', 'count'])
@@ -194,16 +206,16 @@ with st.expander("See Distribution of review character length"):
 
 if topic_distribution:
     st.title(service_provider + ' Topic Distribution')
-    with st.form(key='Words_form'):
-        words = int(st.text_input(
-            "Number of Words",
-            10
-        ))
-        submitted = st.form_submit_button("Submit")
-        if submitted:
-            words = words
-        else:
-            words = 10
+    # with st.form(key='Words_form'):
+    #     words = int(st.text_input(
+    #         "Number of Words",
+    #         10
+    #     ))
+    #     submitted = st.form_submit_button("Submit")
+    #     if submitted:
+    #         words = words
+    #     else:
+    #         words = 10
 
     # Topic - Keywords Dataframe
     df_topic_keywords = pd.DataFrame(topic_keywords)
@@ -249,3 +261,4 @@ if topic_distribution:
     # df_topic_theme['dominant_topic_theme'] = df_topic_theme.apply(lambda row: label_theme(row), axis=1)
 
     # df_topic_distribution = df_topic_theme.groupby(['dominant_topic', 'dominant_topic_theme']).size().sort_values(ascending=False).reset_index(name='count').drop_duplicates(subset='dominant_topic_theme')
+st.info('Please reload/reboot if problem occurs due to loading!')
