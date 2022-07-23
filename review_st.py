@@ -27,34 +27,49 @@ topic_distribution = st.sidebar.checkbox('Topic distribution', True)
 # nlp = spacy.load("en_core_web_sm")
 from st_utils import *
 
-if service_provider == "Redcliffe Labs":
-    redcliffe_labs = pd.read_excel('RedcliffeLabs2K.xlsx')
 
-elif service_provider == 'Lal PathLabs':
-    redcliffe_labs = pd.read_excel('lalpathlabs.xlsx')
-else:
-    redcliffe_labs = pd.read_csv('healthians_1k_recent_new.csv')
+@st.cache(hash_funcs={"MyUnhashableClass": lambda _: None})
+def read_data():
+    if service_provider == "Redcliffe Labs":
+        redcliffe_labs = pd.read_excel('RedcliffeLabs2K.xlsx')
+
+    elif service_provider == 'Lal PathLabs':
+        redcliffe_labs = pd.read_excel('lalpathlabs.xlsx')
+    else:
+        redcliffe_labs = pd.read_csv('healthians_1k_recent_new.csv')
+    redcliffe_labs = redcliffe_labs.dropna()
+    redcliffe_labs = redcliffe_labs[['review_text', 'review_rating']]
+    redcliffe_labs['review_text'] = pd.DataFrame(redcliffe_labs.review_text.apply(lambda x: clean_text(x)))
+    # redcliffe_labs["review_text"] = redcliffe_labs.apply(lambda x: lemmatizer(x['review_text']), axis=1)
+    redcliffe_labs['review_lemmatize_clean'] = redcliffe_labs['review_text'].str.replace('-PRON-', '')
+    redcliffe_labs['polarity'] = redcliffe_labs.review_lemmatize_clean.apply(detect_polarity)
+
+    return redcliffe_labs
+
+
+redcliffe_labs = read_data()
 
 st.title(service_provider + ' Google Reviews')
 
-redcliffe_labs = redcliffe_labs.dropna()
-redcliffe_labs = redcliffe_labs[['review_text', 'review_rating']]
-redcliffe_labs['review_text'] = pd.DataFrame(redcliffe_labs.review_text.apply(lambda x: clean_text(x)))
-# redcliffe_labs["review_text"] = redcliffe_labs.apply(lambda x: lemmatizer(x['review_text']), axis=1)
-redcliffe_labs['review_lemmatize_clean'] = redcliffe_labs['review_text'].str.replace('-PRON-', '')
-redcliffe_labs['polarity'] = redcliffe_labs.review_lemmatize_clean.apply(detect_polarity)
 
-topics = int(st.sidebar.text_input("Number of Topics", 10))
-lda_model = LatentDirichletAllocation(n_components=topics,  # Number of topics
-                                      learning_method='online',
-                                      random_state=0,
-                                      n_jobs=-1  # Use all available CPUs
-                                      )
-data_vectorized = vectorizer.fit_transform(redcliffe_labs['review_lemmatize_clean'])
-lda_output = lda_model.fit_transform(data_vectorized)
-prepared_model_data = pyLDAvis.sklearn.prepare(lda_model, data_vectorized, vectorizer, mds='tsne')
-pyLDAvis.save_html(prepared_model_data, 'lda.html')
-html_string = pyLDAvis.prepared_data_to_html(prepared_model_data)
+@st.cache(hash_funcs={"MyUnhashableClass": lambda _: None}, suppress_st_warning=True)
+def load_html_string():
+    topics_ = int(st.sidebar.text_input("Number of Topics", 10))
+    lda_model__ = LatentDirichletAllocation(n_components=topics_,  # Number of topics
+                                            learning_method='online',
+                                            random_state=0,
+                                            n_jobs=-1  # Use all available CPUs
+                                            )
+    data_vectorized_ = vectorizer.fit_transform(redcliffe_labs['review_lemmatize_clean'])
+    lda_output_ = lda_model__.fit_transform(data_vectorized_)
+    prepared_model_data = pyLDAvis.sklearn.prepare(lda_model__, data_vectorized_, vectorizer, mds='tsne')
+    pyLDAvis.save_html(prepared_model_data, 'lda.html')
+    html_string_ = pyLDAvis.prepared_data_to_html(prepared_model_data)
+    return html_string_, lda_output_, lda_model__, data_vectorized_
+
+
+html_string, lda_output, lda_model, data_vectorized = load_html_string()
+
 components.v1.html(html_string, width=1000, height=800, scrolling=True)
 
 with st.expander("See Data"):
@@ -62,11 +77,14 @@ with st.expander("See Data"):
 
 if my_slider:
     st.subheader('Select Reviews with Polarity Values')
-    values = st.slider(
-        'Select a range of Review Polarity values',
-        -1.0, 1.0, (-1.0, 0.51))
-    st.write('Selected Polarity Values:', values)
-    st.write(redcliffe_labs[redcliffe_labs['polarity'].between(values[0], values[1])])
+    with st.form(key='my_form'):
+        values = st.slider(
+            'Select a range of Review Polarity values',
+            -1.0, 1.0, (-1.0, 0.51))
+        submitted = st.form_submit_button("Submit")
+        if submitted:
+            st.write('Selected Polarity Values:', values)
+            st.write(redcliffe_labs[redcliffe_labs['polarity'].between(values[0], values[1])])
 
 if v_polarity:
     st.subheader('Polarity Values Plots ')
@@ -218,4 +236,3 @@ if topic_distribution:
     # df_topic_theme['dominant_topic_theme'] = df_topic_theme.apply(lambda row: label_theme(row), axis=1)
 
     # df_topic_distribution = df_topic_theme.groupby(['dominant_topic', 'dominant_topic_theme']).size().sort_values(ascending=False).reset_index(name='count').drop_duplicates(subset='dominant_topic_theme')
-
