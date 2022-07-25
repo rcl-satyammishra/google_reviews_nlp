@@ -20,8 +20,10 @@ service_provider = st.sidebar.selectbox(
 )
 v_polarity = st.sidebar.checkbox('Show Review Polarity/Rating Plots ', True)
 my_slider = st.sidebar.checkbox('Select Reviews with Polarity Values', True)
-wordcloud = st.sidebar.checkbox('Visualize WordCloud', True)
-grams = st.sidebar.checkbox('Visualize Unigrams, Bigrams and Trigrams', True)
+positive_wordcloud = st.sidebar.checkbox('Visualize Positive WordCloud', True)
+negative_wordcloud = st.sidebar.checkbox('Visualize Negative WordCloud', True)
+positive_grams = st.sidebar.checkbox('Visualize Unigrams, Bigrams and Trigrams in Positive Reviews', True)
+negative_grams = st.sidebar.checkbox('Visualize Unigrams, Bigrams and Trigrams in Negative Reviews', True)
 
 # nlp = spacy.load("en_core_web_sm")
 from st_utils import *
@@ -106,8 +108,8 @@ if v_polarity:
     sns.boxenplot(x='review_rating', y='polarity', data=redcliffe_labs)
     st.pyplot(fig_rat)
 
-if wordcloud:
-    st.subheader('WordCloud (cluster, of all reviews:)')
+if positive_wordcloud:
+    st.subheader('Negative WordCloud')
     st.info(
         'The more a specific word appears in a source of reviews, the bigger and bolder it appears in the word cloud.')
 
@@ -123,14 +125,38 @@ if wordcloud:
         max_words=500,
         max_font_size=40,
         random_state=42
-    ).generate(str(redcliffe_labs['review_text']))
+    ).generate(str(redcliffe_labs[redcliffe_labs['review_rating'].isin([4, 5])]['review_text']))
 
     print(wordcloud)
     fig_21 = plt.figure(1)
     plt.imshow(wordcloud)
     plt.axis('off')
     st.pyplot(fig_21)
-    # wordcloud = WordCloud(
+
+if negative_wordcloud:
+    st.subheader('Positive WordCloud')
+    st.info(
+        'The more a specific word appears in a source of reviews, the bigger and bolder it appears in the word cloud.')
+    mpl.rcParams['figure.figsize'] = (12.0, 12.0)
+    mpl.rcParams['font.size'] = 12
+    mpl.rcParams['savefig.dpi'] = 100
+    mpl.rcParams['figure.subplot.bottom'] = .1
+    stopwords = set(STOPWORDS)
+
+    wordcloud = WordCloud(
+        background_color='white',
+        stopwords=stopwords,
+        max_words=500,
+        max_font_size=40,
+        random_state=42
+    ).generate(str(redcliffe_labs[redcliffe_labs['review_rating'].isin([1, 2])]['review_text']))
+
+    print(wordcloud)
+    fig_21 = plt.figure(1)
+    plt.imshow(wordcloud)
+    plt.axis('off')
+    st.pyplot(fig_21)
+# wordcloud = WordCloud(
     #     background_color='white',
     #     stopwords=stopwords,
     #     max_words=500,
@@ -144,27 +170,51 @@ if wordcloud:
     # plt.axis('off')
     # st.pyplot(fig)
 
-if grams:
-    st.subheader('Most Frequently occurring sequence of N words')
-    common_words = get_top_n_words(redcliffe_labs['review_lemmatize_clean'], 30)
+if positive_grams:
+    st.subheader('Positive Reviews: Most Frequently occurring sequence of N words')
+    common_words = get_top_n_words(redcliffe_labs[redcliffe_labs['review_rating'].isin([4, 5])]['review_lemmatize_clean'], 30)
     uni_gram = pd.DataFrame(common_words, columns=['unigram', 'count'])
 
     fig = go.Figure([go.Bar(x=uni_gram['unigram'], y=uni_gram['count'])])
     fig.update_layout(
-        title=go.layout.Title(text="Top 30 unigrams in the reviews."))
+        title=go.layout.Title(text="Top 30 unigrams in the positive reviews."))
     st.plotly_chart(fig, use_container_width=True)
 
-    common_words = get_top_n_bigram(redcliffe_labs['review_lemmatize_clean'], 20)
+    common_words = get_top_n_bigram(redcliffe_labs[redcliffe_labs['review_rating'].isin([4, 5])]['review_lemmatize_clean'], 20)
     bi_gram = pd.DataFrame(common_words, columns=['bigram', 'count'])
     fig = go.Figure([go.Bar(x=bi_gram['bigram'], y=bi_gram['count'])])
     fig.update_layout(
-        title=go.layout.Title(text="Top 20 bigrams in the reviews."))
+        title=go.layout.Title(text="Top 20 bigrams in the positive reviews."))
     st.plotly_chart(fig, use_container_width=True)
 
-    common_words = get_top_n_trigram(redcliffe_labs['review_lemmatize_clean'], 20)
+    common_words = get_top_n_trigram(redcliffe_labs[redcliffe_labs['review_rating'].isin([4, 5])]['review_lemmatize_clean'], 20)
     tri_gram = pd.DataFrame(common_words, columns=['trigram', 'count'])
     fig = go.Figure([go.Bar(x=tri_gram['trigram'], y=tri_gram['count'])])
-    fig.update_layout(title=go.layout.Title(text="Top 20 trigrams in the reviews"))
+    fig.update_layout(title=go.layout.Title(text="Top 20 trigrams in the positive reviews"))
+    st.plotly_chart(fig, use_container_width=True)
+
+
+if negative_grams:
+    st.subheader('Negative Reviews: Most Frequently occurring sequence of N words')
+    common_words = get_top_n_words(redcliffe_labs[redcliffe_labs['review_rating'].isin([1, 2])]['review_lemmatize_clean'], 30)
+    uni_gram = pd.DataFrame(common_words, columns=['unigram', 'count'])
+
+    fig = go.Figure([go.Bar(x=uni_gram['unigram'], y=uni_gram['count'])])
+    fig.update_layout(
+        title=go.layout.Title(text="Top 30 unigrams in the negative reviews."))
+    st.plotly_chart(fig, use_container_width=True)
+
+    common_words = get_top_n_bigram(redcliffe_labs[redcliffe_labs['review_rating'].isin([1, 2])]['review_lemmatize_clean'], 20)
+    bi_gram = pd.DataFrame(common_words, columns=['bigram', 'count'])
+    fig = go.Figure([go.Bar(x=bi_gram['bigram'], y=bi_gram['count'])])
+    fig.update_layout(
+        title=go.layout.Title(text="Top 20 bigrams in the negative reviews."))
+    st.plotly_chart(fig, use_container_width=True)
+
+    common_words = get_top_n_trigram(redcliffe_labs[redcliffe_labs['review_rating'].isin([1, 2])]['review_lemmatize_clean'], 20)
+    tri_gram = pd.DataFrame(common_words, columns=['trigram', 'count'])
+    fig = go.Figure([go.Bar(x=tri_gram['trigram'], y=tri_gram['count'])])
+    fig.update_layout(title=go.layout.Title(text="Top 20 trigrams in the negative reviews"))
     st.plotly_chart(fig, use_container_width=True)
 # st.write(uni_gram)
 # st.write(bi_gram)
