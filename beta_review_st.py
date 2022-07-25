@@ -109,7 +109,7 @@ if v_polarity:
     st.pyplot(fig_rat)
 
 if positive_wordcloud:
-    st.subheader('Negative WordCloud')
+    st.subheader('Positive WordCloud')
     st.info(
         'The more a specific word appears in a source of reviews, the bigger and bolder it appears in the word cloud.')
 
@@ -134,7 +134,7 @@ if positive_wordcloud:
     st.pyplot(fig_21)
 
 if negative_wordcloud:
-    st.subheader('Positive WordCloud')
+    st.subheader('Negative WordCloud')
     st.info(
         'The more a specific word appears in a source of reviews, the bigger and bolder it appears in the word cloud.')
     mpl.rcParams['figure.figsize'] = (12.0, 12.0)
