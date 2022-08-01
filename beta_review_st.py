@@ -32,7 +32,7 @@ from st_utils import *
 @st.cache(hash_funcs={"MyUnhashableClass": lambda _: None})
 def read_data():
     if service_provider == "Redcliffe Labs":
-        redcliffe_labs = pd.read_excel('RedcliffeLabs2K.xlsx')
+        redcliffe_labs = pd.read_excel('redcliffelabs15k.xlsx')
 
     elif service_provider == 'Lal PathLabs':
         redcliffe_labs = pd.read_excel('lalpathlabs.xlsx')
