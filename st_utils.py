@@ -9,6 +9,11 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from pprint import pprint
 from textblob import TextBlob, Word
 
+import pandas as pd
+from pattern.search import search
+from nltk.tokenize import word_tokenize
+import matplotlib.pyplot as plt
+
 # nlp = spacy.load("en_core_web_sm")
 
 vectorizer = CountVectorizer(analyzer='word',
@@ -79,45 +84,16 @@ def show_topics(vectorizer_, lda_model_, n_words=20):
         topic_keywords.append(keywords.take(top_keyword_locs))
     return topic_keywords
 
-
-def label_theme(row):
-    if row['dominant_topic'] == 0:
-        return 'American/Car/Marriage/Story/Life in general'
-    if row['dominant_topic'] == 1:
-        return 'Education/Business/Money'
-    if row['dominant_topic'] == 2:
-        return 'American Medicare/Trump'
-    if row['dominant_topic'] == 3:
-        return 'State/Social/Rights'
-    if row['dominant_topic'] == 4:
-        return 'Build new life'
-    if row['dominant_topic'] == 5:
-        return 'Highly educated Indian engineers in America'
-    if row['dominant_topic'] == 6:
-        return 'Tips on improving work day efficiency'
-    if row['dominant_topic'] == 7:
-        return 'College/Service/Power'
-    if row['dominant_topic'] == 8:
-        return 'Company/Human/Invest'
-    if row['dominant_topic'] == 9:
-        return 'Bank account/Charge'
-    if row['dominant_topic'] == 10:
-        return 'Book/Indian/App/Technology'
-    if row['dominant_topic'] == 11:
-        return 'War/Future/Family/USA/Race/Political'
-    if row['dominant_topic'] == 12:
-        return 'Government/President/Society'
-    if row['dominant_topic'] == 13:
-        return 'Relationship/China/Parent/Japan'
-    if row['dominant_topic'] == 14:
-        return 'Application/Energy/Machine/Economic/Art/Europe'
-    if row['dominant_topic'] == 15:
-        return 'Earth/Marketing/Culture'
-    if row['dominant_topic'] == 16:
-        return 'Air/Rate/Sleep/Blood/Email'
-    if row['dominant_topic'] == 17:
-        return 'Student/Internet/Computer/Science/Research'
-    if row['dominant_topic'] == 18:
-        return 'University/Engineering/Language/Software'
-    if row['dominant_topic'] == 19:
-        return 'Job/Learn/Skill improvement'
+def search_service(text):
+    if search('service', text):
+        return 'service'
+    elif search('report|Report|reports|result|Reports|results', text):
+        return 'report'
+    elif search('experience', text):
+        return 'experience'
+    elif search('collection|sample|collected|blood|come|collect|came', text):
+        return 'sample collection'
+    elif search('on time', text) or search('in time', text):
+        return 'time'
+    else:
+        return 'other'
