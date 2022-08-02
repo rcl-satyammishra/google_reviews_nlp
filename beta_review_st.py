@@ -23,7 +23,7 @@ service_provider = st.selectbox(
 from st_utils import *
 
 
-@st.cache(hash_funcs={"MyUnhashableClass": lambda _: None})
+@st.cache(hash_funcs={"MyUnhashableClass": lambda _: None}, allow_output_mutation=True)
 def read_data():
     if service_provider == "Redcliffe Labs":
         redcliffe_labs = pd.read_excel('redcliffelabs15k.xlsx', parse_dates=['review_datetime_utc'])
@@ -94,6 +94,39 @@ if month_trend:
     fig = px.bar(sdf_, x='month', y='polarity_count', color='keyword')
     fig.update_layout(barmode='group')
     st.plotly_chart(fig, use_container_width=True)
+
+
+def search_service_(text):
+    if search(title, text):
+        return title
+
+
+with st.form(key='search_form'):
+    title = st.text_input('Review Search', 'Report')
+    submitted = st.form_submit_button("Submit")
+    if submitted:
+        st.write('Selected Review Values: ', title)
+        redcliffe_labs_ = redcliffe_labs.copy()
+        redcliffe_labs_['keyword'] = redcliffe_labs_.review_text.apply(search_service_)
+        sdf_ = redcliffe_labs_[redcliffe_labs_['keyword'] == title]
+        sdf_ = \
+            redcliffe_labs_.groupby(
+                [redcliffe_labs_['review_datetime_utc'].dt.month_name(), redcliffe_labs_['keyword']],
+                sort=False).agg(['count', 'mean'])[
+                ['polarity']].reset_index()
+        sdf_.columns = ['month', 'keyword', 'polarity_count', 'polarity_mean']
+        if service_provider == "Redcliffe Labs":
+            sdf_ = sdf_[sdf_['polarity_count'] > 20]
+        fig = px.line(sdf_, x="month", y="polarity_mean", color='keyword', markers=True)
+        fig.update_layout(
+            autosize=False,
+            width=1200,
+            height=600, )
+        st.plotly_chart(fig, use_container_width=True)
+
+        fig = px.bar(sdf_, x='month', y='polarity_count', color='keyword')
+        fig.update_layout(barmode='group')
+        st.plotly_chart(fig, use_container_width=True)
 
 v_polarity = st.checkbox('Show Review Polarity/Rating Plots ', True)
 st.subheader('Polarity Values Plots ')
@@ -249,7 +282,6 @@ with st.expander("Reviews that have the Highest polarity or Lowest Polarity:"):
     # st.write(redcliffe_labs[(redcliffe_labs.review_rating == 5) & (redcliffe_labs.polarity == -1)].head(10))
     # st.write("Reviews that have the highest polarity (most positive sentiment) but with a 1-star:")
     # st.write(redcliffe_labs[(redcliffe_labs.review_rating == 1) & (redcliffe_labs.polarity == 1)].head(10))
-
     # st.write(redcliffe_labs.head())
 
 with st.expander("See Distribution of review character length"):
@@ -262,62 +294,5 @@ with st.expander("See Distribution of review character length"):
     plt.xlabel('Review character length')
     sns.despine()
     st.pyplot(fig)
-#
-# if topic_distribution:
-#     st.title(service_provider + ' Topic Distribution')
-#     # with st.form(key='Words_form'):
-#     #     words = int(st.text_input(
-#     #         "Number of Words",
-#     #         10
-#     #     ))
-#     #     submitted = st.form_submit_button("Submit")
-#     #     if submitted:
-#     #         words = words
-#     #     else:
-#     #         words = 10
-#
-#     # Topic - Keywords Dataframe
-#     df_topic_keywords = pd.DataFrame(topic_keywords)
-#     df_topic_keywords.columns = ['Word ' + str(i) for i in range(df_topic_keywords.shape[1])]
-#     topics = ['Topic ' + str(i) for i in range(df_topic_keywords.shape[0])]
-#     df_topic_keywords.index = topics
-#     st.subheader('Topic Keywords Table')
-#     st.write(df_topic_keywords.T)
-#     lda_output = lda_model.transform(data_vectorized)
-#     topicnames = df_topic_keywords.T.columns
-#     docnames = ["Doc" + str(i) for i in range(len(redcliffe_labs))]
-#     df_document_topic = pd.DataFrame(np.round(lda_output, 2), columns=topicnames, index=docnames)
-#     dominant_topic = np.argmax(df_document_topic.values, axis=1)
-#     df_document_topic['dominant_topic'] = dominant_topic
-#     # st.write(df_document_topic)
-#     df_document_topic.reset_index(inplace=True)
-#     df_sent_topic = pd.merge(redcliffe_labs, df_document_topic, left_index=True, right_index=True)
-#     df_sent_topic.drop('index', axis=1, inplace=True)
-#     with st.expander("See Topic wise score of each review."):
-#         st.write(df_sent_topic)
-#     df_topic_theme = df_sent_topic[['review_text', 'dominant_topic']]
-#
-#     df_topic_distribution = df_topic_theme.groupby(['dominant_topic']).size().sort_values(ascending=False).reset_index(
-#         name='count').drop_duplicates()
-#     df_topic_distribution['dominant_topic'] = 'Topic ' + df_topic_distribution['dominant_topic'].astype('str')
-#     # st.write(df_topic_distribution)
-#     fig = px.bar(df_topic_distribution, x='dominant_topic', y='count')
-#     st.plotly_chart(fig, use_container_width=True)
-#
-#     st.subheader('Dominant Topic: Filter')
-#     with st.form(key='Filter_form'):
-#         topic_ = st.selectbox(
-#             "Select Topic",
-#             topics
-#         )
-#         no = int(''.join(filter(str.isdigit, topic_)))
-#         submitted = st.form_submit_button("Submit")
-#         if submitted:
-#             st.write(df_topic_theme[df_document_topic.dominant_topic == no])
-#         else:
-#             st.write(df_topic_theme)
-#
-#     # df_topic_theme['dominant_topic_theme'] = df_topic_theme.apply(lambda row: label_theme(row), axis=1)
-#
-#     # df_topic_distribution = df_topic_theme.groupby(['dominant_topic', 'dominant_topic_theme']).size().sort_values(ascending=False).reset_index(name='count').drop_duplicates(subset='dominant_topic_theme')
+
 st.info('Please reload/reboot if problem occurs due to loading!')

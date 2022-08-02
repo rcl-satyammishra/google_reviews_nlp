@@ -26,7 +26,6 @@ vectorizer = CountVectorizer(analyzer='word',
                              )
 
 
-
 def detect_polarity(text):
     return TextBlob(text).sentiment.polarity
 
@@ -84,6 +83,7 @@ def show_topics(vectorizer_, lda_model_, n_words=20):
         topic_keywords.append(keywords.take(top_keyword_locs))
     return topic_keywords
 
+
 def search_service(text):
     if search('service', text):
         return 'service'
@@ -97,3 +97,6 @@ def search_service(text):
         return 'time'
     else:
         return 'other'
+
+
+
